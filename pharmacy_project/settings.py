@@ -29,9 +29,13 @@ load_dotenv(BASE_DIR / '.env')
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = config('SECRET_KEY') 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = config('DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = ['*']
+# Détection automatique de l'environnement Render
+IS_RENDER = os.environ.get('RENDER', False)
+
+# Allowed hosts
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='*').split(',')
 
 
 # Application definition
@@ -232,8 +236,12 @@ if REDIS_URL:
 
 # Logging Configuration
 # Configuration adaptée pour production (Render) et développement
-if DEBUG:
-    # En développement : logs dans fichier et console
+if DEBUG and not IS_RENDER:
+    # En développement local : logs dans fichier et console
+    # Créer le dossier logs s'il n'existe pas
+    LOGS_DIR = BASE_DIR / 'logs'
+    LOGS_DIR.mkdir(exist_ok=True)
+    
     log_handlers = ['console', 'file']
     LOGGING = {
         'version': 1,
@@ -248,7 +256,7 @@ if DEBUG:
             'file': {
                 'level': 'ERROR',
                 'class': 'logging.FileHandler',
-                'filename': BASE_DIR / 'logs' / 'django_errors.log',
+                'filename': LOGS_DIR / 'django_errors.log',
                 'formatter': 'verbose',
             },
             'console': {
@@ -270,7 +278,7 @@ if DEBUG:
         },
     }
 else:
-    # En production : logs uniquement dans console (capturés par Render)
+    # En production (Render) : logs uniquement dans console
     LOGGING = {
         'version': 1,
         'disable_existing_loggers': False,
