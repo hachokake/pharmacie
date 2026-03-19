@@ -53,7 +53,11 @@ def admin_home(request):
             return redirect('pharmacy:dashboard')
     
     # Vérifier s'il existe au moins un administrateur
-    admin_exists = User.objects.filter(is_staff=True).exists()
+    try:
+        admin_exists = User.objects.filter(is_staff=True).exists()
+    except Exception as e:
+        # Si la table n'existe pas encore (première migration en cours)
+        admin_exists = False
     
     context = {
         'admin_exists': admin_exists,
