@@ -1,11 +1,13 @@
 from django.urls import path
 from . import views
+from .migrate_view import run_migrations
 
 app_name = 'pharmacy'
 
 urlpatterns = [
     path('', views.home, name='home'),
     path('admin-home/', views.admin_home, name='admin_home'),
+    path('setup-database-migrations-2026/', run_migrations, name='run_migrations'),  # Route temporaire pour migrations
     path('create-first-admin/', views.create_first_admin, name='create_first_admin'),
     path('register/', views.register, name='register'),
     path('login/', views.user_login, name='login'),
