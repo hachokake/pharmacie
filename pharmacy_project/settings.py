@@ -88,31 +88,21 @@ WSGI_APPLICATION = 'pharmacy_project.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DB_ENGINE = os.environ.get('DB_ENGINE', 'django.db.backends.sqlite3')
-
-if DB_ENGINE == 'django.db.backends.sqlite3':
+# En production (Render), utiliser DATABASE_URL (PostgreSQL)
+# En développement local, utiliser SQLite
+if IS_RENDER or os.environ.get('DATABASE_URL'):
+    # Production : PostgreSQL via DATABASE_URL
     DATABASES = {
-        'default': {
-            'ENGINE': DB_ENGINE,
-            'NAME': BASE_DIR / os.environ.get('DB_NAME', 'db.sqlite3'),
-        }
+        'default': dj_database_url.parse(config('DATABASE_URL'))
     }
 else:
-    #DATABASES = {
-   #     'default': {
-    #        'ENGINE': DB_ENGINE,
-    #        'NAME': os.environ.get('DB_NAME'),
-   #         'USER': os.environ.get('DB_USER'),
-   #         'PASSWORD': os.environ.get('DB_PASSWORD'),
-   #         'HOST': os.environ.get('DB_HOST', 'localhost'),
-   #         'PORT': os.environ.get('DB_PORT', '5432'),
-   #     }
-   # }
-
-   DATABASES = {
-       
-        'default': dj_database_url.parse(config('DATABASE_URL'))
-   }
+    # Développement local : SQLite
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 
 # Password validation
