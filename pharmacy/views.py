@@ -17,14 +17,18 @@ from .forms import MedicamentForm, CategorieForm, ClientForm, VenteForm, ItemVen
 # Fonction utilitaire pour enregistrer les activités
 def log_activity(user, action, description, model_name='', object_id=None, ip_address=None):
     """Enregistre une activité utilisateur"""
-    ActivityLog.objects.create(
-        user=user,
-        action=action,
-        model_name=model_name,
-        object_id=object_id,
-        description=description,
-        ip_address=ip_address
-    )
+    try:
+        ActivityLog.objects.create(
+            user=user,
+            action=action,
+            model_name=model_name,
+            object_id=object_id,
+            description=description,
+            ip_address=ip_address
+        )
+    except Exception as e:
+        # Si la table n'existe pas encore ou erreur de BDD, on ignore silencieusement
+        pass
 
 
 def get_client_ip(request):
