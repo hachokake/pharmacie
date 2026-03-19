@@ -31,11 +31,17 @@ SECRET_KEY = config('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=False, cast=bool)
 
-# Détection automatique de l'environnement Render
+# Détection automatique de l'environnement de production
 IS_RENDER = os.environ.get('RENDER', False)
+IS_RAILWAY = os.environ.get('RAILWAY_ENVIRONMENT', False)
+IS_PRODUCTION = IS_RENDER or IS_RAILWAY
 
 # Allowed hosts
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='*').split(',')
+if IS_PRODUCTION:
+    # En production, accepter tous les domaines (Railway/Render génèrent des URLs dynamiques)
+    ALLOWED_HOSTS = ['*']
+else:
+    ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')
 
 
 # Application definition
@@ -88,12 +94,16 @@ WSGI_APPLICATION = 'pharmacy_project.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-# En production (Render), utiliser DATABASE_URL (PostgreSQL)
-# En développement local, utiliser SQLite
-if IS_RENDER or os.environ.get('DATABASE_URL'):
-    # Production : PostgreSQL via DATABASE_URL
+# En production (Railway/Render), utiliser DATABASE_URL (PostgreSQL)
+# En développement local, utiliser SQLite ou PostgreSQL selon la variable d'environnement
+if os.environ.get('DATABASE_URL'):
+    # Production ou développement avec PostgreSQL : utiliser DATABASE_URL
     DATABASES = {
-        'default': dj_database_url.parse(config('DATABASE_URL'))
+        'default': dj_database_url.parse(
+            os.environ.get('DATABASE_URL'),
+            conn_max_age=600,
+            ssl_require=True if IS_PRODUCTION else False
+        )
     }
 else:
     # Développement local : SQLite
@@ -103,7 +113,6 @@ else:
             'NAME': BASE_DIR / 'db.sqlite3',
         }
     }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
@@ -159,12 +168,31 @@ LOGOUT_REDIRECT_URL = 'pharmacy:home'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Security Settings
-SECURE_SSL_REDIRECT = os.environ.get('SECURE_SSL_REDIRECT', 'False') == 'True'
-SESSION_COOKIE_SECURE = os.environ.get('SESSION_COOKIE_SECURE', 'False') == 'True'
-CSRF_COOKIE_SECURE = os.environ.get('CSRF_COOKIE_SECURE', 'False') == 'True'
+if IS_PRODUCTION:
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+else:
+    SECURE_SSL_REDIRECT = False
+    SESSION_COOKIE_SECURE = False
+    CSRF_COOKIE_SECURE = False
+
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'DENY'
+
+# CSRF Trusted Origins - Important pour Railway/Render
+CSRF_TRUSTED_ORIGINS = [
+    'https://*.railway.app',
+    'https://*.onrender.com',
+]
+
+# Ajouter les origines custom si définies
+if os.environ.get('CUSTOM_DOMAIN'):
+    CSRF_TRUSTED_ORIGINS.append(f"https://{os.environ.get('CUSTOM_DOMAIN')}")
 
 # CORS Settings for API
 CORS_ALLOWED_ORIGINS = [
@@ -173,6 +201,14 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:3000",
     "http://127.0.0.1:8100",
 ]
+
+# En production, autoriser les domaines Railway/Render
+if IS_PRODUCTION:
+    # Autoriser tous les domaines Railway et Render
+    CORS_ALLOW_ALL_ORIGINS = True
+else:
+    CORS_ALLOW_ALL_ORIGINS = False
+
 CORS_ALLOW_CREDENTIALS = True
 
 # Django REST Framework Settings
@@ -229,8 +265,8 @@ if REDIS_URL:
     }
 
 # Logging Configuration
-# Configuration adaptée pour production (Render) et développement
-if DEBUG and not IS_RENDER:
+# Configuration adaptée pour production (Railway/Render) et développement
+if DEBUG and not IS_PRODUCTION:
     # En développement local : logs dans fichier et console
     # Créer le dossier logs s'il n'existe pas
     LOGS_DIR = BASE_DIR / 'logs'
@@ -272,7 +308,7 @@ if DEBUG and not IS_RENDER:
         },
     }
 else:
-    # En production (Render) : logs uniquement dans console
+    # En production (Railway/Render) : logs uniquement dans console
     LOGGING = {
         'version': 1,
         'disable_existing_loggers': False,
