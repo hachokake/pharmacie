@@ -39,7 +39,7 @@ IS_PRODUCTION = IS_RENDER or IS_RAILWAY
 # Allowed hosts
 if IS_PRODUCTION:
     # En production, accepter tous les domaines (Railway/Render génèrent des URLs dynamiques)
-    ALLOWED_HOSTS = ['*']
+    ALLOWED_HOSTS = ['localhost','127.0.0.1','pharmacie-production-2c69.up.railway.app']
 else:
     ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')
 
@@ -186,8 +186,8 @@ X_FRAME_OPTIONS = 'DENY'
 
 # CSRF Trusted Origins - Important pour Railway/Render
 CSRF_TRUSTED_ORIGINS = [
-    'https://*.railway.app',
-    'https://*.onrender.com',
+    'https://pharmacie-production-2c69.up.railway.app'
+    
 ]
 
 # Ajouter les origines custom si définies
